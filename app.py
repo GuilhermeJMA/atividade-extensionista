@@ -14,7 +14,7 @@ st.set_page_config(page_title="Dashboard de Despesas", layout="wide")
 #st.title("📊 Dashboard Contas Públicas Guaramirim")
 
 # caminho do arquivo
-ARQUIVO = "C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/Relatorio.txt"  # mantenha o mesmo que você já usa
+ARQUIVO = "dados/Relatorio.txt" #"C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/Relatorio.txt"  # mantenha o mesmo que você já usa
 
 # -------------------------
 # FUNÇÕES AUXILIARES
@@ -386,7 +386,7 @@ with aba_dashboard:
 with aba_previsoes:
     st.markdown("## 📈 Previsão de Gastos")
 
-    pasta_historico = "C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/historico"  # pasta onde você salva os arquivos mensais
+    pasta_historico = "dados/historico" #"C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/historico"  # pasta onde você salva os arquivos mensais
 
     arquivos = sorted(glob.glob(os.path.join(pasta_historico, "*.txt")))
 
@@ -496,3 +496,4 @@ with aba_previsoes:
 
         else:
             st.info("São necessários pelo menos 3 meses de histórico para gerar previsões.")
+
