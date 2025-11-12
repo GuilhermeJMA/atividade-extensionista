@@ -4,4 +4,3 @@ pandas
 prophet
 matplotlib
 numpy
-glob
