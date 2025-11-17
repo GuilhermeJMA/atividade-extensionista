@@ -494,6 +494,175 @@ with aba_previsoes:
             valor_formatado = f"{proximo_mes['yhat']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
             st.success(f"💡 Previsão para {proximo_mes['mes'].strftime('%b/%Y')}: R$ {valor_formatado}")
 
+            df_prev = previsao[previsao["mes"] > df_hist["mes"].max()][["mes", "yhat"]].copy()
+
+                        # ------------------------------------------------------------
+            # 🔵 PREVISÃO POR FUNÇÃO
+            # ------------------------------------------------------------
+            st.markdown("### 🔍 Previsão por Função")
+
+            col_funcao = expected.get("funcao descricao")
+
+            if col_funcao is None:
+                st.error("A coluna 'funcao descricao' não foi encontrada nos arquivos.")
+            else:
+                # ====== 1) LER OS MESMOS ARQUIVOS E AGRUPAR POR FUNÇÃO ======
+                funcoes_mensais = []
+
+                for arq in arquivos:
+                    try:
+                        df_mes = pd.read_csv(arq, sep=";", encoding="latin1", quotechar='"')
+                        df_mes.columns = [c.strip().lower() for c in df_mes.columns]
+
+                        if col_funcao.lower() in df_mes.columns and col_pago.lower() in df_mes.columns:
+                            df_mes[col_pago.lower()] = (
+                                df_mes[col_pago.lower()]
+                                .astype(str)
+                                .str.replace(",", ".")
+                            ).astype(float)
+
+                            df_mes["mes"] = extrair_mes_ano(arq)
+
+                            # somar POR FUNÇÃO
+                            df_group = (
+                                df_mes.groupby([ "mes", col_funcao.lower() ])[col_pago.lower()]
+                                .sum()
+                                .reset_index()
+                                .rename(columns={col_funcao.lower(): "funcao", col_pago.lower(): "valor_pago"})
+                            )
+
+                            funcoes_mensais.append(df_group)
+
+                    except Exception as erro:
+                        st.error(f"Erro ao processar {arq}: {erro}")
+
+                if funcoes_mensais:
+                    df_funcoes_full = pd.concat(funcoes_mensais, ignore_index=True)
+
+                    lista_funcoes = sorted(df_funcoes_full["funcao"].unique())
+
+                    escolha = st.selectbox("Selecione uma função:", lista_funcoes)
+
+                    df_func = df_funcoes_full[df_funcoes_full["funcao"] == escolha].copy()
+
+                    # ====== 2) Preparar histórico ====== 
+                    # Primeiro, converte mes para Period antes de agrupar
+                    df_func["mes_period"] = df_func["mes"].dt.to_period("M")
+
+                    # Agrupa e soma apenas valor_pago
+                    df_func_grouped = (
+                        df_func.groupby("mes_period", as_index=False)["valor_pago"]
+                        .sum()
+                    )
+
+                    # Converte Period de volta para Timestamp
+                    df_func_grouped["mes"] = df_func_grouped["mes_period"].dt.to_timestamp()
+                    df_func_grouped = df_func_grouped.drop(columns=["mes_period"])
+
+                    if len(df_func_grouped) >= 3:
+                        # ====== 3) Rodar prophet específico ====== 
+                        df_prophet_f = df_func_grouped.rename(columns={"mes": "ds", "valor_pago": "y"})
+                        modelo_f = Prophet()
+                        modelo_f.fit(df_prophet_f)
+                        
+                        futuro_f = modelo_f.make_future_dataframe(periods=2, freq="M")
+                        prev_f = modelo_f.predict(futuro_f)
+                        prev_f["mes"] = prev_f["ds"].dt.to_period("M").dt.to_timestamp()
+                        prev_f = prev_f.groupby("mes", as_index=False).last()
+                        
+                        # ====== 4) GRÁFICO PLOTLY ====== 
+                        fig_f = px.line(
+                            prev_f,
+                            x="mes", 
+                            y="yhat",
+                            title=f"📈 Previsão para a Função: {escolha}",
+                            labels={"mes": "Mês", "yhat": "Valor (R$)"}
+                        )
+                        
+                        # linha previsão
+                        fig_f.update_traces(
+                            line=dict(color="orange", width=3),
+                            mode="markers+lines",
+                            marker=dict(size=6),
+                            name="Previsão"
+                        )
+                        
+                        # linha histórico
+                        fig_f.add_scatter(
+                            x=df_func_grouped["mes"],
+                            y=df_func_grouped["valor_pago"],
+                            mode="markers+lines",
+                            name="Histórico Real",
+                            line=dict(color="royalblue", width=3),
+                            marker=dict(size=6),
+                        )
+                        
+                        st.plotly_chart(fig_f, use_container_width=True)
+                        
+                        # ====== 5) Exibir previsão final ====== 
+                        ultimo = prev_f.tail(1)[["mes", "yhat"]].iloc[0]
+                        val = f"{ultimo['yhat']:,.2f}".replace(".", ",")
+                        st.success(f"📌 Previsão para **{escolha}** em {ultimo['mes'].strftime('%b/%Y')}: **R$ {val}**")
+                    else:
+                        st.info("São necessários pelo menos 3 meses dessa função para gerar previsão.")
+
+
         else:
             st.info("São necessários pelo menos 3 meses de histórico para gerar previsões.")
+
+    st.warning("⚠️ Lembre-se: previsões são estimativas baseadas em dados históricos e podem não refletir com precisão os resultados futuros reais.")
+    st.info("""
+    ---
+    ## 🧠 CURIOSIDADE: 
+
+    ### Neste projeto, foi utilizado o algoritmo Prophet.
+
+    Ele é um algoritmo de previsão de séries temporais desenvolvido pelo Facebook (Meta), criado especialmente para lidar com dados reais que possuem sazonalidade, tendência e variações ao longo do tempo.
+
+    ### 🔍 O que o Prophet faz com os dados?
+
+    O Prophet decompõe a série temporal em três componentes principais:
+
+    **1. Tendência (trend)**  
+    Representa o comportamento geral dos valores ao longo do tempo — crescimento, queda ou estabilidade.  
+    O Prophet detecta automaticamente mudanças na tendência sem precisar de configuração extra.
+
+    **2. Sazonalidade (seasonality)**  
+    O modelo identifica padrões que se repetem em ciclos, como:  
+    - comportamento mensal  
+    - comportamento anual  
+    - padrões semanais  
+    - se existe algum padrão que se repete todo mês ou todo ano  
+    - se houve algum mês atípico (outlier)
+
+    **3. Feriados e eventos (holidays)**  
+    (Quando configurado) o Prophet considera feriados e eventos que impactam os valores.
+
+    ---
+
+    ### 📈 Como o Prophet gera a previsão?
+
+    1. Lê os valores históricos (datas + indicadores).  
+    2. Ajusta um modelo com tendência, sazonalidade e mudanças estruturais.  
+    3. Projeta o comportamento futuro com base nos padrões aprendidos.  
+
+    ---
+
+    ### 📌 Fórmula simplificada que o Prophet usa: 
+    \[ y(t) = g(t) + s(t) + h(t) + \epsilon_t \] 
+            
+    Onde: 
+    - **g(t)** = tendência 
+    - **s(t)** = sazonalidade 
+    - **h(t)** = efeitos extras (como feriados) 
+    - **ε** = ruído/erro
+
+    ---
+
+    ### 🎯 Por que usei Prophet neste projeto?
+
+    - Lida bem com dados financeiros e orçamentários.  
+    - Suporta dados faltantes e séries curtas.  
+    - É excelente para prever valores mensais de pagamentos e gastos.
+    """)
 
