@@ -263,9 +263,13 @@ with aba_dashboard:
     # GRÁFICO PRINCIPAL (ordenado)
     # -------------------------
     st.divider()
-    st.markdown("### 📈 Execução Financeira por Função")
+    
+
+    st.markdown("##### Top 3 Por Função")
 
     group_col = func_col
+    
+
     if group_col and group_col in df_filtrado.columns:
         y_cols = [expected.get(n) for n in ["empenhado ate o mes", "liquidado ate o mes", "pago ate o mes"] if expected.get(n)]
         graf_df = df_filtrado.groupby(group_col)[y_cols].sum().reset_index()
@@ -273,6 +277,24 @@ with aba_dashboard:
         graf_df["Total"] = graf_df[y_cols].sum(axis=1)
         graf_df = graf_df.sort_values("Total", ascending=False)
 
+        icons_rank = ["🥇", "🥈", "🥉"]
+        colors_rank = ["#DAA520", "#C0C0C0", "#CD7F32"]  # ouro, prata, bronze
+        top3 = graf_df.head(3)
+
+        cols = st.columns(3)
+
+        for i in range(3):
+            with cols[i]:
+                st.markdown(
+                    render_card(
+                        icon=icons_rank[i],
+                        label=str(top3.iloc[i][group_col]),
+                        value=top3.iloc[i]["Total"],
+                        color=colors_rank[i]
+                    ),
+                    unsafe_allow_html=True
+                )
+        st.markdown("### 📈 Execução Financeira por Função")
         fig = px.bar(
         graf_df,
         x=group_col,
@@ -335,7 +357,7 @@ with aba_dashboard:
             fig_pie.update_traces(
             textinfo="label+percent+value",
             textposition="outside",
-            textfont=dict(size=14),
+            textfont=dict(size=12),
             pull=[0.02] * len(pie_df),  # dá um leve destaque aos segmentos
             showlegend=False
         )
