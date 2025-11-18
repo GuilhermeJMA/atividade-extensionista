@@ -11,10 +11,9 @@ from datetime import datetime
 # CONFIG
 # -------------------------
 st.set_page_config(page_title="Dashboard de Despesas", layout="wide")
-#st.title("📊 Dashboard Contas Públicas Guaramirim")
 
 # caminho do arquivo
-ARQUIVO = "dados/Relatorio.txt" #"C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/Relatorio.txt"  # mantenha o mesmo que você já usa
+ARQUIVO = "dados/Relatorio.txt" 
 
 # -------------------------
 # FUNÇÕES AUXILIARES
@@ -102,9 +101,8 @@ for ncol in numeric_cols_norm:
 # --- LOGO E TÍTULO ---
 col_logo, col_titulo = st.columns([1, 5])
 with col_logo:
-    st.image("logo.png", width=150)  # altere o caminho conforme necessário
+    st.image("logo.png", width=150) 
 with col_titulo:
-    #st.markdown("<h1 style='margin-top: 10px;'>📊 Dashboard Contas Públicas Guaramirim</h1>", unsafe_allow_html=True)
     st.markdown(
     """
     <h1 style='text-align: center; margin-top: 10px; color: #2c3e50;
@@ -275,13 +273,31 @@ with aba_dashboard:
         graf_df["Total"] = graf_df[y_cols].sum(axis=1)
         graf_df = graf_df.sort_values("Total", ascending=False)
 
-        fig = px.bar(graf_df, x=group_col, y=y_cols, barmode="group", title="Execução Financeira por Função")
+        fig = px.bar(
+        graf_df,
+        x=group_col,
+        y=y_cols,
+        barmode="group",
+        title="Execução Financeira por Função",
+        labels={"variable": "Indicador"} 
+    )
+
+        fig.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
+        )
+
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("Coluna de função não encontrada — gráfico não exibido.")
 
     # -------------------------
-    # GRÁFICO DE ROSCA + EXECUÇÃO (lado a lado)
+    # GRÁFICO DE ROSCA + EXECUÇÃO
     # -------------------------
     st.divider()
     st.markdown("### 📊 Análises Complementares")
@@ -366,12 +382,31 @@ with aba_dashboard:
                 title=f"{metrica_sel} por Categoria Economica (Top 5 + Outros)"
             )
             fig_cat.update_traces(
-            textinfo="label+percent+value",
+            textinfo="label",
             textposition="outside",
-            textfont=dict(size=14),
-            pull=[0.02] * len(cat_df),  # dá um leve destaque aos segmentos
-            showlegend=False
+            textfont=dict(size=12),
         )
+
+            fig_cat.update_traces(
+            textinfo="label",
+            textposition="outside",
+            textfont=dict(size=12)
+        )
+            fig_cat.update_traces(
+                textinfo="percent+value",
+                textposition="inside"
+            )
+
+            fig_cat.update_layout(
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1,
+                    xanchor="center",
+                    x=0.5
+                )
+            )
+
             st.plotly_chart(fig_cat, use_container_width=True)
         else:
             st.info("Não foi possível gerar o gráfico de rosca por Categoria Economica.")
@@ -386,7 +421,7 @@ with aba_dashboard:
 with aba_previsoes:
     st.markdown("## 📈 Previsão de Gastos")
 
-    pasta_historico = "dados/historico" #"C:/Users/fatur/Documents/Estudos/atividade_extensionista/dados/historico"  # pasta onde você salva os arquivos mensais
+    pasta_historico = "dados/historico" 
 
     arquivos = sorted(glob.glob(os.path.join(pasta_historico, "*.txt")))
 
@@ -453,8 +488,6 @@ with aba_previsoes:
 
             # -------------------
             # Gráfico
-            # -------------------
-            # Gráfico
             fig = px.line(
             previsao,
             x="mes",
@@ -496,7 +529,7 @@ with aba_previsoes:
 
             df_prev = previsao[previsao["mes"] > df_hist["mes"].max()][["mes", "yhat"]].copy()
 
-                        # ------------------------------------------------------------
+            # ------------------------------------------------------------
             # 🔵 PREVISÃO POR FUNÇÃO
             # ------------------------------------------------------------
             st.markdown("### 🔍 Previsão por Função")
