@@ -17,9 +17,11 @@ Visualização detalhada dos dados
 
 1. Clone o repositório
 git clone https://github.com/GuilhermeJMA/atividade-extensionista.git
+
 cd atividade-extensionista
 
 2. Instale as dependências
+
 pip install -r requirements.txt
 
 ▶️ Como executar
