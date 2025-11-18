@@ -265,7 +265,7 @@ with aba_dashboard:
     st.divider()
     
 
-    st.markdown("##### Top 3 Por Função")
+    st.markdown("##### 🥉 Top 3 Por Função")
 
     group_col = func_col
     
