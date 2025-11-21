@@ -271,30 +271,40 @@ with aba_dashboard:
     
 
     if group_col and group_col in df_filtrado.columns:
-        y_cols = [expected.get(n) for n in ["empenhado ate o mes", "liquidado ate o mes", "pago ate o mes"] if expected.get(n)]
-        graf_df = df_filtrado.groupby(group_col)[y_cols].sum().reset_index()
-
-        graf_df["Total"] = graf_df[y_cols].sum(axis=1)
-        graf_df = graf_df.sort_values("Total", ascending=False)
-
+        col_base = expected.get("pago ate o mes")
+        graf_top_3 = df_filtrado.groupby(group_col)[col_base].sum().reset_index()
+        graf_top_3 = graf_top_3.sort_values(col_base, ascending=False)
         icons_rank = ["🥇", "🥈", "🥉"]
         colors_rank = ["#DAA520", "#C0C0C0", "#CD7F32"]  # ouro, prata, bronze
-        top3 = graf_df.head(3)
+        top3 = graf_top_3.head(3)
 
         cols = st.columns(3)
 
         for i in range(3):
             with cols[i]:
-                st.markdown(
-                    render_card(
-                        icon=icons_rank[i],
-                        label=str(top3.iloc[i][group_col]),
-                        value=top3.iloc[i]["Total"],
-                        color=colors_rank[i]
-                    ),
-                    unsafe_allow_html=True
-                )
+                if i < len(top3):
+                    st.markdown(
+                        render_card(
+                            icon=icons_rank[i],
+                            label=str(top3.iloc[i][group_col]),
+                            value=   top3.iloc[i][col_base], #top3.iloc[i]["Total"],
+                            color=colors_rank[i]
+                        ),
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        render_card("❔", "Sem dados", 0, "#BBBBBB"),
+                        unsafe_allow_html=True
+                    )
+
         st.markdown("### 📈 Execução Financeira por Função")
+
+        y_cols = [expected.get(n) for n in ["empenhado ate o mes", "liquidado ate o mes", "pago ate o mes"] if expected.get(n)]
+        graf_df = df_filtrado.groupby(group_col)[y_cols].sum().reset_index()
+        graf_df["Total"] = graf_df[y_cols].sum(axis=1)
+        graf_df = graf_df.sort_values("Total", ascending=False)
+
         fig = px.bar(
         graf_df,
         x=group_col,
